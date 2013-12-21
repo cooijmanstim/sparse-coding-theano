@@ -95,7 +95,6 @@ def l1ls_featuresign(A, y, gamma):
             # check optimality
             optimal_nz = fs["optimal_nz"](A[:, active], x[active])
             logging.debug("optimal_nz %s" % optimal_nz)
-            return
             if np.allclose(optimal_nz, 0):
                 optimal_z = fs["optimal_z"](A[:, np.logical_not(active)], x[np.logical_not(active)])
                 logging.debug("optimal_z %s" % optimal_z)
