@@ -1,8 +1,24 @@
+import os
 import numpy as np
 import theano
 import theano.tensor as T
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
+def detect_nan(i, node, fn):
+    for output in fn.outputs:
+        if np.isnan(output[0]).any():
+            print '*** NaN detected ***'
+            theano.printing.debugprint(node)
+            print 'Inputs : %s' % [input[0] for input in fn.inputs]
+            print 'Outputs: %s' % [output[0] for output in fn.outputs]
+            break
+
+detect_nan_mode = theano.compile.MonitorMode(post_func=detect_nan).excluding('local_elemwise_fusion', 'inplace')
+
+def show_function(f):
+    theano.printing.pydotprint(f, ".show_function.png")
+    os.system("feh optimal_nz.png")
 
 def generate_functions(A, y, gamma):
     tA = T.matrix('A')
@@ -14,7 +30,7 @@ def generate_functions(A, y, gamma):
     tx1 = T.vector('x1')
     tbetas = T.vector('betas')
     
-    error = lambda x: (T.dot(tA, x) - ty).norm(2)
+    error = lambda x: T.sum((T.dot(tA, x) - ty)**2)
     derror = lambda x: T.grad(error(x), x)
     penalty = lambda x: x.norm(1)
     loss = lambda x: error(x) + penalty(x)
@@ -64,7 +80,7 @@ def l1ls_featuresign(A, y, gamma):
             theta[i] = 1
             active[i] = True
         logging.debug("enter %i, grad %f, sign %i" % (i, l, theta[i]))
-        logging.debug("x %s" % x)
+        logging.debug("x %s theta %s" % (x, theta))
 
         while True:
             # optimize active variables
@@ -74,11 +90,16 @@ def l1ls_featuresign(A, y, gamma):
             theta[active] = thetanew
             active[active] = np.logical_not(np.isclose(xnew, 0))
 
-            logging.debug("x %s" % x)
+            logging.debug("x %s theta %s" % (x, theta))
 
             # check optimality
-            if np.allclose(fs["optimal_nz"](A[:, active], x[active]), 0):
-                if not np.all(fs["optimal_z"](A[:, np.logical_not(active)], x[np.logical_not(active)]) <= gamma):
+            optimal_nz = fs["optimal_nz"](A[:, active], x[active])
+            logging.debug("optimal_nz %s" % optimal_nz)
+            return
+            if np.allclose(optimal_nz, 0):
+                optimal_z = fs["optimal_z"](A[:, np.logical_not(active)], x[np.logical_not(active)])
+                logging.debug("optimal_z %s" % optimal_z)
+                if not np.all(optimal_z <= gamma):
                     # let another variable enter
                     break
                 else:
@@ -87,7 +108,7 @@ def l1ls_featuresign(A, y, gamma):
 
 def optimize_basis(A, x0, theta, fs):
     x1 = fs["qp_optimum"](A, theta)
-    logging.debug("optimum %s" % x1)
+    logging.debug("qp_optimum %s" % x1)
 
     # find zero-crossings
     betas = x0 / (x0 - x1)
@@ -101,5 +122,4 @@ def optimize_basis(A, x0, theta, fs):
 
     return x, theta
 
-
-l1ls_featuresign(np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]), np.array([0.0, 1.0, 2.0]), 0.0)
+l1ls_featuresign(np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]), np.array([0.0, 1.0, 2.0]), 0.5)
