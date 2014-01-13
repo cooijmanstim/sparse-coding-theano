@@ -79,6 +79,13 @@ def l1ls_featuresign(A, y, gamma):
         elif l < -gamma:
             theta[i] = 1
             active[i] = True
+        else:
+            # this break is not in the algorithm as described in the paper, but that
+            # description appears to be broken anyway.  it makes sense to break out
+            # of the loop if no variable enters the basis, if this means the resulting
+            # candidate solution will be the same.  but this may not be necessarily true;
+            # after optimize_basis(), the active set may be modified.
+            break
         logging.debug("enter %i, grad %f, sign %i" % (i, l, theta[i]))
         logging.debug("x %s theta %s" % (x, theta))
 
@@ -90,20 +97,20 @@ def l1ls_featuresign(A, y, gamma):
             theta[active] = thetanew
             active[active] = np.logical_not(np.isclose(xnew, 0))
 
-            logging.debug("x %s theta %s" % (x, theta))
+            logging.debug("x %s theta %s active %s" % (x, theta, active))
 
             # check optimality
             optimal_nz = fs["optimal_nz"](A[:, active], x[active])
             logging.debug("optimal_nz %s" % optimal_nz)
             if np.allclose(optimal_nz, 0):
-                optimal_z = fs["optimal_z"](A[:, np.logical_not(active)], x[np.logical_not(active)])
+                inactive = np.logical_not(active)
+                optimal_z = fs["optimal_z"](A[:, inactive], x[inactive])
                 logging.debug("optimal_z %s" % optimal_z)
-                if not np.all(optimal_z <= gamma):
+                if np.all(optimal_z <= gamma):
+                    return x
+                else:
                     # let another variable enter
                     break
-                else:
-                    # optimal
-                    return x
 
 def optimize_basis(A, x0, theta, fs):
     x1 = fs["qp_optimum"](A, theta)
