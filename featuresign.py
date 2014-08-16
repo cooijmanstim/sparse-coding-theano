@@ -59,16 +59,17 @@ def generate_functions(A, y, gamma):
         }
 
 # TODO use sparse representations where appropriate
-def l1ls_featuresign(A, y, gamma):
+def l1ls_featuresign(A, y, gamma, x=None):
     # rows are examples
     n, m = A.shape
 
     fs = generate_functions(A, y, gamma)
 
     # initialization
-    x = np.zeros(m)
-    theta = np.zeros(m)
-    active = np.zeros(m, dtype=bool)
+    if x is None:
+        x = np.zeros(m)
+    theta = np.sign(x)
+    active = np.abs(theta, dtype=bool)
 
     while True:
         # select entering variable
