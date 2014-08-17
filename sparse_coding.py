@@ -7,7 +7,7 @@ from featuresign import l1ls_featuresign
 from bases import l2ls_learn_basis_dual
 
 def sparse_coding(X, num_bases, beta, num_iters, iter_callback):
-    B = np.random((X.shape[0], num_bases)) - 0.5
+    B = np.random.random((X.shape[0], num_bases)) - 0.5
     B = B / np.sqrt(np.sum(B**2, 0))
 
     S = np.zeros((num_bases, X.shape[1]))
@@ -16,8 +16,8 @@ def sparse_coding(X, num_bases, beta, num_iters, iter_callback):
         # shuffle samples
         np.random.shuffle(X.T)
 
-        for j, x in enumerate(X.columns):
-            S[:, j] = l1ls_featuresign(B, x, beta, S[:, j])
+        for j in xrange(X.shape[1]):
+            S[:, j] = l1ls_featuresign(B, X[:, j], beta, S[:, j])
         S[np.isnan(S)] = 0
 
         B = l2ls_learn_basis_dual(X, S, 1)
