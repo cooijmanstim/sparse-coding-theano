@@ -128,5 +128,3 @@ def optimize_basis(A, x0, theta, fs):
     theta = np.sign(x)
 
     return x, theta
-
-l1ls_featuresign(np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]), np.array([0.0, 1.0, 2.0]), 0.5)

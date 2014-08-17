@@ -50,7 +50,3 @@ def l2ls_learn_basis_dual(X, S, c):
     B = np.dot(np.linalg.inv(np.dot(S, S.T) + np.diag(lambdas)),
                np.dot(X, S.T).T)
     return B
-
-l2ls_learn_basis_dual(np.array([[1, 0, 0, 1, 0], [1, 1, 0, -1, -1], [0, 2, 1, -2, -1]], dtype=np.float64),
-                      np.array([[1, 2, 3, 4, -1], [5, 6, 7, 8, -2], [9, 10, 11, 12, -4]], dtype=np.float64),
-                      1.0)
