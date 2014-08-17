@@ -73,7 +73,12 @@ def l1ls_featuresign(A, y, gamma, x=None):
 
     while True:
         # select entering variable
-        i, l = fs["select_entering"](x)
+        zero_mask = x == 0
+        xz = x[zero_mask]
+        iz, l = fs["select_entering"](xz)
+        # iz is an index into xz; figure out the corresponding index into x
+        i = np.where(zero_mask)[0][iz]
+
         if l > gamma:
             theta[i] = -1
             active[i] = True
