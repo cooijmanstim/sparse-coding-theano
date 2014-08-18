@@ -32,7 +32,7 @@ def generate_functions(A, y, gamma):
     
     error = lambda x: T.sum((T.dot(tA, x) - ty)**2)
     derror = lambda x: T.grad(error(x), x)
-    penalty = lambda x: x.norm(1)
+    penalty = lambda x: gamma*x.norm(1)
     loss = lambda x: error(x) + penalty(x)
 
     entering_index = T.argmax(abs(derror(tx)))
