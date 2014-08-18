@@ -30,9 +30,9 @@ def generate_functions(A, y, gamma):
     tx1 = T.vector('x1')
     tbetas = T.vector('betas')
     
-    error = lambda x: T.sum((T.dot(tA, x) - ty)**2)
+    error = lambda x: ((T.dot(tA, x) - ty)**2).sum()
     derror = lambda x: T.grad(error(x), x)
-    penalty = lambda x: gamma*x.norm(1)
+    penalty = lambda x: gamma*abs(x).sum()
     loss = lambda x: error(x) + penalty(x)
 
     entering_index = T.argmax(abs(derror(tx)))
@@ -86,20 +86,15 @@ def l1ls_featuresign(A, y, gamma, x=None):
         # iz is an index into xz; figure out the corresponding index into x
         i = np.where(zero_mask)[0][iz]
 
-        if l > gamma:
-            theta[i] = -1
+        if abs(l) > gamma:
+            theta[i] = -np.sign(l)
             active[i] = True
-        elif l < -gamma:
-            theta[i] = 1
-            active[i] = True
+            logging.debug("enter %i, grad %f, gamma %f, sign %i" % (i, l, gamma, theta[i]))
         else:
-            # this break is not in the algorithm as described in the paper, but that
-            # description appears to be broken anyway.  it makes sense to break out
-            # of the loop if no variable enters the basis, if this means the resulting
-            # candidate solution will be the same.  but this may not be necessarily true;
-            # after optimize_basis(), the active set may be modified.
-            break
-        logging.debug("enter %i, grad %f, gamma %f, sign %i" % (i, l, gamma, theta[i]))
+            if not np.any(active):
+                logging.debug("empty basis and no entering variable")
+                break
+
         logging.debug("x %s theta %s" % (x, theta))
 
         while True:
@@ -140,6 +135,6 @@ def optimize_basis(A, x0, theta, fs):
 
     x = xs[np.argmin(losses)]
     logging.debug("selected candidate %s" % x)
-    theta = np.sign(x)
 
+    theta = np.sign(x)
     return x, theta
