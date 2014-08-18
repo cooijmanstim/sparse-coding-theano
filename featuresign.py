@@ -2,6 +2,7 @@ import os
 import numpy as np
 import theano
 import theano.tensor as T
+import theano.sandbox.linalg as tl
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -34,6 +35,7 @@ def generate_functions(A, y, gamma):
     derror = lambda x: T.grad(error(x), x)
     penalty = lambda x: gamma*abs(x).sum()
     loss = lambda x: error(x) + penalty(x)
+    loss_if_consistent = lambda x: error(x) + gamma*T.dot(ttheta, x)
 
     entering_index = T.argmax(abs(derror(tx)))
     txs, _ = theano.map(lambda b, x0, x1: (1-b)*x0 + b*x1,
@@ -45,11 +47,24 @@ def generate_functions(A, y, gamma):
     return {
         "loss": theano.function([tA, tx], loss(tx),
                                 givens = {ty: y}),
+        "loss_if_consistent": theano.function([tA, tx, ttheta],
+                                              loss_if_consistent(tx),
+                                              givens = {ty: y}),
         "select_entering": theano.function([tA, tx],
                                            [entering_index, derror(tx)[entering_index]],
                                            givens = {ty: y}),
+        "qp_optimum_intermediates": theano.function([tA, ttheta],
+                                                    [tA,
+                                                     ty,
+                                                     ttheta,
+                                                     T.dot(tA.T, tA),
+                                                     tl.matrix_inverse(T.dot(tA.T, tA)),
+                                                     T.dot(tA.T, ty),
+                                                     gamma/2*ttheta,
+                                                     T.dot(tA.T, ty) - gamma/2*ttheta],
+                                                    givens = {ty: y}),
         "qp_optimum": theano.function([tA, ttheta],
-                                      T.dot(T.inv(T.dot(tA.T, tA)), T.dot(tA.T, ty) - gamma/2*ttheta),
+                                      T.dot(tl.matrix_inverse(T.dot(tA.T, tA)), T.dot(tA.T, ty) - gamma/2*ttheta),
                                       givens = {ty: y}),
         "qp_candidates": theano.function([tA, tbetas, tx0, tx1],
                                          [txs, losses],
@@ -122,7 +137,13 @@ def l1ls_featuresign(A, y, gamma, x=None):
 
 def optimize_basis(A, x0, theta, fs):
     x1 = fs["qp_optimum"](A, theta)
-    logging.debug("qp_optimum %s loss from %f to %f" % (x1, fs["loss"](A, x0), fs["loss"](A, x1)))
+    lossc0, lossc1 = map(lambda x: fs["loss_if_consistent"](A, x, theta), [x0, x1])
+    logging.debug("qp_optimum x0 %s -> x1 %s lossc0 %f -> lossc1 %f" % (x0, x1, lossc0, lossc1))
+
+    if lossc1 > lossc0:
+        logging.debug("qp optimizer is not optimizing, intermediates:")
+        logging.debug(fs["qp_optimum_intermediates"](A, theta))
+        raise RuntimeError("qp optimizer is not optimizing")
 
     # find zero-crossings
     betas = x0 / (x0 - x1)
