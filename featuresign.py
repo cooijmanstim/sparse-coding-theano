@@ -40,9 +40,9 @@ def generate_functions(A, y, gamma):
                         [tbetas], [tx0, tx1])
 
     return {
-        "select_entering": theano.function([tx],
+        "select_entering": theano.function([tA, tx],
                                            [entering_index, derror(tx)[entering_index]],
-                                           givens = {tA: A, ty: y}),
+                                           givens = {ty: y}),
         "qp_optimum": theano.function([tA, ttheta],
                                       T.dot(T.inv(T.dot(tA.T, tA)), T.dot(tA.T, ty) - gamma/2*ttheta),
                                       givens = {ty: y}),
@@ -75,7 +75,7 @@ def l1ls_featuresign(A, y, gamma, x=None):
         # select entering variable
         zero_mask = x == 0
         xz = x[zero_mask]
-        iz, l = fs["select_entering"](xz)
+        iz, l = fs["select_entering"](A[:, zero_mask], xz)
         # iz is an index into xz; figure out the corresponding index into x
         i = np.where(zero_mask)[0][iz]
 
