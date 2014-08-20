@@ -65,9 +65,6 @@ def generate_functions(A, y, gamma):
         "optimal_nz": theano.function([tA, tx],
                                       derror(tx) + gamma*T.sgn(tx),
                                       givens = {ty: y}),
-        "optimal_z": theano.function([tA, tx],
-                                     abs(derror(tx)),
-                                     givens = {ty: y}),
         }
 
 # TODO use sparse representations where appropriate
@@ -82,6 +79,7 @@ def l1ls_featuresign(A, y, gamma, x=None):
         x = np.zeros(m)
     theta = np.sign(x)
     active = np.abs(theta, dtype=bool)
+    basis_optimal = False
 
     while True:
         # select entering variable
@@ -94,15 +92,16 @@ def l1ls_featuresign(A, y, gamma, x=None):
         if abs(l) > gamma:
             theta[i] = -np.sign(l)
             active[i] = True
+            basis_optimal = False
             logging.debug("enter %i, grad %f, gamma %f, sign %i" % (i, l, gamma, theta[i]))
-        else:
-            if not np.any(active):
-                logging.debug("empty basis and no entering variable")
-                break
 
         logging.debug("x %s theta %s" % (x, theta))
 
-        while True:
+        if basis_optimal:
+            logging.debug("optimal")
+            break
+
+        while not basis_optimal:
             # optimize active variables
             xnew, thetanew = optimize_basis(A[:, active], x[active], theta[active], fs)
 
@@ -116,14 +115,8 @@ def l1ls_featuresign(A, y, gamma, x=None):
             optimal_nz = fs["optimal_nz"](A[:, active], x[active])
             logging.debug("optimal_nz %s" % optimal_nz)
             if np.allclose(optimal_nz, 0):
-                inactive = np.logical_not(active)
-                optimal_z = fs["optimal_z"](A[:, inactive], x[inactive])
-                logging.debug("optimal_z %s" % optimal_z)
-                if np.all(optimal_z <= gamma):
-                    return x
-                else:
-                    # let another variable enter
-                    break
+                # maybe let another variable enter
+                basis_optimal = True
 
 def optimize_basis(A, x0, theta, fs):
     x1 = fs["qp_optimum"](A, theta)
