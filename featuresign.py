@@ -53,16 +53,6 @@ def generate_functions(A, y, gamma):
         "select_entering": theano.function([tA, tx],
                                            [entering_index, derror(tx)[entering_index]],
                                            givens = {ty: y}),
-        "qp_optimum_intermediates": theano.function([tA, ttheta],
-                                                    [tA,
-                                                     ty,
-                                                     ttheta,
-                                                     T.dot(tA.T, tA),
-                                                     tl.matrix_inverse(T.dot(tA.T, tA)),
-                                                     T.dot(tA.T, ty),
-                                                     gamma/2*ttheta,
-                                                     T.dot(tA.T, ty) - gamma/2*ttheta],
-                                                    givens = {ty: y}),
         "qp_optimum": theano.function([tA, ttheta],
                                       T.dot(tl.matrix_inverse(T.dot(tA.T, tA)), T.dot(tA.T, ty) - gamma/2*ttheta),
                                       givens = {ty: y}),
@@ -138,12 +128,9 @@ def l1ls_featuresign(A, y, gamma, x=None):
 def optimize_basis(A, x0, theta, fs):
     x1 = fs["qp_optimum"](A, theta)
     lossc0, lossc1 = map(lambda x: fs["loss_if_consistent"](A, x, theta), [x0, x1])
-    logging.debug("qp_optimum x0 %s -> x1 %s lossc0 %f -> lossc1 %f" % (x0, x1, lossc0, lossc1))
-
-    if lossc1 > lossc0:
-        logging.debug("qp optimizer is not optimizing, intermediates:")
-        logging.debug(fs["qp_optimum_intermediates"](A, theta))
-        raise RuntimeError("qp optimizer is not optimizing")
+    loss0, loss1 = map(lambda x: fs["loss"](A, x), [x0, x1])
+    logging.debug("qp_optimum x0 %s lossc0 %f loss0 %f" % (x0, lossc0, loss0))
+    logging.debug("qp_optimum x1 %s lossc1 %f loss1 %f" % (x1, lossc1, loss1))
 
     # find zero-crossings
     betas = x0 / (x0 - x1)
