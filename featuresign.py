@@ -134,7 +134,7 @@ def optimize_basis(A, x0, theta, fs):
 
     # find zero-crossings
     betas = x0 / (x0 - x1)
-    betas = betas[np.logical_and(0 <= betas, betas < 1)]
+    betas = betas[np.logical_and(0 < betas, betas < 1)]
     # make sure we investigate x1
     betas = np.append(betas, 1)
 
