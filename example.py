@@ -5,6 +5,8 @@ import scipy.io
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+import logging
+logging.basicConfig(level=logging.WARNING)
 import sparse_coding as sc
 
 def onto_unit(x):
@@ -56,6 +58,10 @@ for i in xrange(num_patches):
     columns.append(column)
 X = np.hstack(columns)
 
-#visualize_patches(X)
+# test callback function on svd
+#svd = np.linalg.svd(X, full_matrices=False)
+#print [x.shape for x in svd]
+#callback(X, svd[0], np.dot(np.diag(svd[1]), svd[2]))
+
 num_bases = 64
 sc.sparse_coding(X, num_bases, 0.4, 100, lambda B, S: callback(X, B, S))

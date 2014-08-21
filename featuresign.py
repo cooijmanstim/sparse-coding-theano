@@ -4,7 +4,6 @@ import theano
 import theano.tensor as T
 import theano.sandbox.linalg as tl
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 def detect_nan(i, node, fn):
     for output in fn.outputs:
