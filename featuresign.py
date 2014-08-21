@@ -82,24 +82,30 @@ def l1ls_featuresign(A, y, gamma, x=None):
     basis_optimal = False
 
     while True:
-        # select entering variable
         zero_mask = x == 0
-        xz = x[zero_mask]
-        iz, l = fs["select_entering"](A[:, zero_mask], xz)
-        # iz is an index into xz; figure out the corresponding index into x
-        i = np.where(zero_mask)[0][iz]
+        if np.any(zero_mask):
+            # select entering variable
+            xz = x[zero_mask]
+            iz, l = fs["select_entering"](A[:, zero_mask], xz)
+            # iz is an index into xz; figure out the corresponding index into x
+            i = np.where(zero_mask)[0][iz]
 
-        if abs(l) > gamma:
-            theta[i] = -np.sign(l)
-            active[i] = True
-            basis_optimal = False
-            logging.debug("enter %i, grad %f, gamma %f, sign %i" % (i, l, gamma, theta[i]))
-
-        logging.debug("x %s theta %s" % (x, theta))
-
-        if basis_optimal:
+            if abs(l) > gamma:
+                theta[i] = -np.sign(l)
+                active[i] = True
+                basis_optimal = False
+                logging.debug("enter %i, grad %f, gamma %f, sign %i" % (i, l, gamma, theta[i]))
+            elif basis_optimal:
+                logging.debug("optimal")
+                break
+            elif not np.any(active):
+                logging.debug("empty basis and no entering variable")
+                break
+        elif basis_optimal:
             logging.debug("optimal")
             break
+
+        logging.debug("x %s theta %s" % (x, theta))
 
         while not basis_optimal:
             # optimize active variables
@@ -117,6 +123,9 @@ def l1ls_featuresign(A, y, gamma, x=None):
             if np.allclose(optimal_nz, 0):
                 # maybe let another variable enter
                 basis_optimal = True
+
+    logging.debug("final x %s" % x)
+    return x
 
 def optimize_basis(A, x0, theta, fs):
     x1 = fs["qp_optimum"](A, theta)
