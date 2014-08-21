@@ -29,12 +29,21 @@ def visualize_patches(B):
             patch = onto_unit(patch.reshape((mpatch, npatch)))
             collage[i*mpatch:(i+1)*mpatch, j*npatch:(j+1)*npatch] = patch
     plt.imshow(collage, cmap=cm.gray)
-    plt.show()
 
-def callback(B, S):
-    visualize_patches(B)
-    visualize_patches(B*S)
+def callback(X, B, S):
+    plt.subplot(2, 2, 1)
     visualize_patches(X)
+    plt.title("originals")
+    plt.subplot(2, 2, 2)
+    visualize_patches(B)
+    plt.title("bases")
+    plt.subplot(2, 2, 3)
+    visualize_patches(np.dot(B, S))
+    plt.title("reconstructions")
+    plt.subplot(2, 2, 4)
+    visualize_patches(X - np.dot(B, S))
+    plt.title("differences")
+    plt.show()
 
 images = scipy.io.loadmat("IMAGES.mat")["IMAGES"]
 patch_size = 8
@@ -49,4 +58,4 @@ X = np.hstack(columns)
 
 #visualize_patches(X)
 num_bases = 64
-sc.sparse_coding(X, num_bases, 0.4, 2, callback)
+sc.sparse_coding(X, num_bases, 0.4, 100, lambda B, S: callback(X, B, S))
