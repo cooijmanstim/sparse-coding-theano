@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 from featuresign import l1ls_featuresign
 from bases import l2ls_learn_basis_dual
@@ -23,6 +22,8 @@ def sparse_coding(X, num_bases, beta, num_iters, iter_callback):
             logging.debug("coding %i %s" % (t, S[:, j]))
         S[np.isnan(S)] = 0
 
-        B = l2ls_learn_basis_dual(X, S, 1)
+        B = l2ls_learn_basis_dual(X, S, 1.0)
 
         iter_callback(B, S)
+
+    return (B, S)
