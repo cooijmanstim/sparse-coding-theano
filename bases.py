@@ -2,6 +2,7 @@ import os
 import numpy as np
 import theano
 import theano.tensor as T
+import theano.sandbox.linalg as la
 import scipy.optimize
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,11 +24,12 @@ def l2ls_learn_basis_dual(X, S, c):
     tc = T.scalar('c')
     tlambdas = T.vector('lambdas')
 
-    objective = -(T.dot(tX, tX.T)
-                  - T.dot(T.dot(tX, tS.T),
-                          T.dot(T.inv(T.dot(tS, tS.T) + T.diag(tlambdas)),
-                                T.dot(tX, tS.T).T))
-                  - tc*T.diag(tlambdas)).trace()
+    tXST = T.dot(tX, tS.T)
+    tSSTetc = la.matrix_inverse(T.dot(tS, tS.T) + T.diag(tlambdas))
+
+    objective = -(T.dot(tX, tX.T).trace()
+                  - reduce(T.dot, [tXST, tSSTetc, tXST.T]).trace()
+                  - tc*tlambdas.sum())
 
     objective_fn = theano.function([tlambdas],
                                    objective,
@@ -36,17 +38,16 @@ def l2ls_learn_basis_dual(X, S, c):
                                         T.grad(objective, tlambdas),
                                         givens={tX: X, tS: S, tc: c})
 
-    # now maximize objective wrt tlambdas
     initial_lambdas = 10*np.abs(np.random.random((S.shape[0], 1)))
-
     output = scipy.optimize.fmin_cg(f=objective_fn,
                                     fprime=objective_grad_fn,
                                     x0=initial_lambdas,
                                     full_output=True)
-    print output[1:]       
+    logging.debug("optimizer stats %s" % (output[1:],))
+    logging.debug("optimizer lambdas %s" % output[0])
 
-    # compute B from lambdas
     lambdas = output[0]
     B = np.dot(np.linalg.inv(np.dot(S, S.T) + np.diag(lambdas)),
-               np.dot(X, S.T).T)
+               np.dot(S, X.T)).T
+
     return B
