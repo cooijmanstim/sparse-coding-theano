@@ -42,6 +42,7 @@ def l2ls_learn_basis_dual(X, S, c):
     output = scipy.optimize.fmin_cg(f=objective_fn,
                                     fprime=objective_grad_fn,
                                     x0=initial_lambdas,
+                                    maxiter=100,
                                     full_output=True)
     logging.debug("optimizer stats %s" % (output[1:],))
     logging.debug("optimizer lambdas %s" % output[0])
