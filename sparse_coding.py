@@ -15,11 +15,11 @@ def sparse_coding(X, num_bases, beta, num_iters, iter_callback):
         # shuffle samples
         np.random.shuffle(X.T)
 
-        logging.debug("basis %i %s" % (t, B))
+        logging.info("basis %i %s" % (t, B))
         for j in xrange(X.shape[1]):
-            logging.debug("sample %i %s" % (t, X[:, j]))
+            logging.info("t %i sample %i %s" % (t, j, X[:, j]))
             S[:, j] = l1ls_featuresign(B, X[:, j], beta, S[:, j])
-            logging.debug("coding %i %s" % (t, S[:, j]))
+            logging.info("t %i coding %i %s" % (t, j, S[:, j]))
         S[np.isnan(S)] = 0
 
         B = l2ls_learn_basis_dual(X, S, 1.0)
